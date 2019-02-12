@@ -23,3 +23,17 @@ class NotificationManager:
 
     def delete_notification(self, id):
         del self.notification[id]
+
+
+notification_fields = {
+    'id': fields.Integer,
+    'uri': fields.Url('notification_endpoint'),
+    'message': fields.String,
+    'ttl': fields.Integer,
+    'creation_data': fields.DateTime,
+    'notification_category': fields.String,
+    'displayed_times': fields.Integer,
+    'display_once': fields.Boolean,
+}
+
+notification_manager = NotificationManager()
