@@ -6,6 +6,21 @@ from pytz import utc
 from models import NotificationModel
 from http_status import HttpStatus
 
+app = Flask(__name__)
+service = Api(app)
+
+
+notification_fields = {
+    'id': fields.Integer,
+    'uri': fields.Url('notification_endpoint'),
+    'message': fields.String,
+    'ttl': fields.Integer,
+    'creation_data': fields.DateTime,
+    'notification_category': fields.String,
+    'displayed_times': fields.Integer,
+    'display_once': fields.Boolean,
+}
+
 
 class NotificationManager:
     last_id = 0
@@ -25,17 +40,6 @@ class NotificationManager:
         del self.notifications[id]
 
 
-notification_fields = {
-    'id': fields.Integer,
-    'uri': fields.Url('notification_endpoint'),
-    'message': fields.String,
-    'ttl': fields.Integer,
-    'creation_data': fields.DateTime,
-    'notification_category': fields.String,
-    'displayed_times': fields.Integer,
-    'display_once': fields.Boolean,
-}
-
 notification_manager = NotificationManager()
 
 
@@ -47,9 +51,13 @@ class Notification(Resource):
                 message=f'Notification {id} doesn\'t exist.',
             )
 
-    # marshal_with filters any other fields not provided in the
-    # notification_fields. Perfect to leave out any other fields
-    # of not interest comming along in the request
+    # marshal_with helps in serializing and filtering the response
+    # object. Only the fields set in the notification_fields will
+    # be returned filtering out the rest. While setting up the
+    # notification_fields, we also serialize the each fields to
+    # ensure we get the data type specified.
+    # What's important to remember is that marshal_with works on
+    # the response object, not the request
     @marshal_with(notification_fields)
     def get(self, id):
         self.abort_if_notification_not_found(id)
@@ -64,12 +72,14 @@ class Notification(Resource):
     def patch(self, id):
         self.abort_if_notification_not_found(id)
         notification = notification_manager.get_notification(id)
+
         parser = reqparse.RequestParser()
         parser.add_argument('message', type=str)
         parser.add_argument('ttl', type=int)
         parser.add_argument('display_times', type=int)
-        parser.add_argument('diplay_once', type=bool)
+        parser.add_argument('display_once', type=bool)
         args = parser.parse_args()
+
         print(args)
         if 'message' in args and args['message'] is not None:
             notification.message = args['message']
@@ -85,7 +95,7 @@ class Notification(Resource):
 class NotificationList(Resource):
     @marshal_with(notification_fields)
     def get(self):
-        return [v for v in notification_manager.notifications.value()]
+        return [v for v in notification_manager.notifications.values()]
 
     @marshal_with(notification_fields)
     def post(self):
@@ -109,6 +119,7 @@ class NotificationList(Resource):
             help='Notification category cannot be blank!',
         )
         args = parser.parse_args()
+
         notification = NotificationModel(
             message=args['message'],
             ttl=args['ttl'],
@@ -117,3 +128,14 @@ class NotificationList(Resource):
         )
         notification_manager.insert_notification(notification)
         return (notification, HttpStatus.created_201.value)
+
+
+service.add_resource(NotificationList, '/service/notifications')
+service.add_resource(
+    Notification,
+    '/service/notifications/<int:id>',
+    endpoint='notification_endpoint',
+)
+
+if __name__ == '__main__':
+    app.run(debug=True)
