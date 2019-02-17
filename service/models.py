@@ -58,3 +58,42 @@ class NotificationCategory(orm.Model, ResourceAddUpdateDelete):
 
     def __init__(self, name):
         self.name = name
+
+
+class NotificationCategorySchema(ma.Schema):
+    id = fields.Integer(dump_only=True)
+    # Minumum length of 3 characters
+    name = fields.String(required=True, validate=validate.Length(3))
+    url = ma.URLFor(
+        'service.notificationcategoryresource', id='<id>', _external=True
+    )
+    notifications = fields.Nested(
+        'NotificationSchema', many=True, exclude='notification_category'
+    )
+
+
+class NotificationSchema(ma.Schema):
+    id = fields.Integer(dump_only=True)
+    message = fields.String(required=True, validate=validate.Length(5))
+    ttl = fields.Integer()
+    creation_date = fields.DateTime()
+    notification_category = fields.Nested(
+        NotificationCategorySchema, only=['id', 'url', 'name'], required=True
+    )
+    displayed_times = fields.Integer()
+    displayed_oncec = fields.Boolean()
+    url = ma.URLFor('service.notificationsresouce', id='<id>', _external=True)
+
+    @pre_load
+    def process_notification_category(self, data):
+        notification_category = data.get('notification_category')
+        if notification_category:
+            if isinstance(notification_category, dict):
+                notification_category_name = notification_category.get('name')
+            else:
+                notification_category_name = notification_category
+            notification_category_dict = dict(name=notification_category_name)
+        else:
+            notification_category_dict = {}
+        data['notification_category'] = notification_category_dict
+        return data
