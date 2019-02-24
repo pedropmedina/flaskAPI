@@ -2,9 +2,9 @@ from flask import Blueprint, request, make_response
 from flask_restful import Api, Resource
 from sqlalchemy.exc import SQLAlchemyError
 
-from ..http_status import HttpStatus
-from ..db import db as orm
-from .models import NotificationCategory, NotificationCategorySchema
+from ..utils.http_status import HttpStatus
+from ..models.base import db as orm
+from ..models.category import NotificationCategory, NotificationCategorySchema
 
 
 notification_category_schema = NotificationCategorySchema()

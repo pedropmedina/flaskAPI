@@ -3,7 +3,8 @@ from flask_migrate import Migrate
 
 
 def create_app(config=None):
-    from . import db, category, notification
+    from .models import init_app
+    from .routes import register_blueprint
 
     # instantiate flask app
     app = Flask(__name__)
@@ -15,9 +16,8 @@ def create_app(config=None):
         app.config.from_mapping(config)
 
     # initialize database and blueprints
-    db.init_app(app)
-    notification.register_bp(app)
-    category.register_bp(app)
+    db = init_app(app)
+    register_blueprint(app)
 
     Migrate(app, db)
 
