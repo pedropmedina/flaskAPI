@@ -1,6 +1,6 @@
-from flask import Blueprint, request, make_response, jsonify
+from flask import Blueprint, request, make_response
 from flask_restful import Api, Resource
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy.exc import SQLAlchemyError
 from marshmallow import ValidationError
 
 from ..utils.http_status import HttpStatus
@@ -24,7 +24,7 @@ class NotificationCategoryResource(Resource):
         notifications_data = notifications_schema.dump(
             notification_category.notifications
         )
-        return jsonify({'category': category_data, 'notifications': notifications_data})
+        return {'category': category_data, 'notifications': notifications_data}
 
     def patch(self, id):
         notification_category = NotificationCategory.query.get_or_404(id)
@@ -32,7 +32,7 @@ class NotificationCategoryResource(Resource):
 
         if not json_data:
             return (
-                jsonify({'message': 'Not input data provided'}),
+                {'message': 'Not input data provided'},
                 HttpStatus.bad_request_400.value,
             )
 
@@ -49,9 +49,7 @@ class NotificationCategoryResource(Resource):
 
         try:
             notification_category.update()
-            return jsonify(
-                {'category': category_data, 'notifications': notifications_data}
-            )
+            return {'category': category_data, 'notifications': notifications_data}
         except SQLAlchemyError as err:
             orm.session.rollback()
             return {'messages': str(err)}, HttpStatus.bad_request_400.value
@@ -71,14 +69,14 @@ class NotificationCatergoryListResource(Resource):
     def get(self):
         notification_categories = NotificationCategory.query.all()
         categories_data = categories_schema.dump(notification_categories)
-        return jsonify({'categories': categories_data})
+        return {'categories': categories_data}
 
     def post(self):
         json_data = request.get_json()
 
         if not json_data:
             return (
-                jsonify({'message': 'No input data provided'}),
+                {'message': 'No input data provided'},
                 HttpStatus.bad_request_400.value,
             )
 
@@ -96,9 +94,7 @@ class NotificationCatergoryListResource(Resource):
                 notification_category.notifications
             )
             return (
-                jsonify(
-                    {'category': category_data, 'notifications': notifications_data}
-                ),
+                {'category': category_data, 'notifications': notifications_data},
                 HttpStatus.created_201.value,
             )
         except SQLAlchemyError as err:
