@@ -1,4 +1,4 @@
-from marshmallow import fields, pre_load, validate
+from marshmallow import fields, pre_load, validate, ValidationError
 
 from .base import db as orm, ma
 from ..routes.base import ResourceAddUpdateDelete
@@ -24,12 +24,13 @@ class Notification(orm.Model, ResourceAddUpdateDelete):
         ),
     )
     displayed_times = orm.Column(orm.Integer, nullable=False, server_default='0')
-    displayed_once = orm.Column(orm.Boolean, nullable=False, server_default='false')
+    displayed_once = orm.Column(orm.Boolean, nullable=False, server_default='False')
 
-    def __init__(self, message, ttl, notification_category):
-        self.message = message
-        self.ttl = ttl
-        self.notification_category = notification_category
+
+# validation helpers
+def data_required(data):
+    if not data:
+        raise ValidationError('Data is required.')
 
 
 # Notification Schema
@@ -39,11 +40,11 @@ class NotificationSchema(ma.Schema):
     ttl = fields.Integer()
     creation_date = fields.DateTime()
     notification_category = fields.Nested(
-        'NotificationCategorySchema', only=['id', 'url', 'name'], required=True
+        'NotificationCategorySchema', validate=data_required
     )
     displayed_times = fields.Integer()
     displayed_once = fields.Boolean()
-    url = ma.URLFor('service.notificationsresouce', id='<id>', _external=True)
+    url = ma.URLFor('notification.notificationresource', id='<id>', _external=True)
 
     @pre_load
     def process_notification_category(self, data):

@@ -1,13 +1,17 @@
-from flask import Blueprint, request, make_response
+from flask import Blueprint, request, make_response, jsonify
 from flask_restful import Api, Resource
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from marshmallow import ValidationError
 
 from ..utils.http_status import HttpStatus
 from ..models.base import db as orm
 from ..models.category import NotificationCategory, NotificationCategorySchema
+from ..models.notification import NotificationSchema
 
 
-notification_category_schema = NotificationCategorySchema()
+category_schema = NotificationCategorySchema(only=('id', 'name', 'url'))
+categories_schema = NotificationCategorySchema(many=True)
+notifications_schema = NotificationSchema(many=True, exclude=['notification_category'])
 
 bp = Blueprint('category', __name__)
 category = Api(bp)
@@ -16,29 +20,41 @@ category = Api(bp)
 class NotificationCategoryResource(Resource):
     def get(self, id):
         notification_category = NotificationCategory.query.get_or_404(id)
-        dump_result = notification_category_schema.dump(notification_category).data
-        return dump_result
+        category_data = category_schema.dump(notification_category)
+        notifications_data = notifications_schema.dump(
+            notification_category.notifications
+        )
+        return jsonify({'category': category_data, 'notifications': notifications_data})
 
     def patch(self, id):
         notification_category = NotificationCategory.query.get_or_404(id)
-        notification_category_dict = request.get_json()
-        if not notification_category_dict:
-            response = {'message': 'Not input data provided'}
-            return response, HttpStatus.bad_request_400.value
-        errors = notification_category_schema.validate(notification_category_dict)
-        if errors:
-            return errors, HttpStatus.bad_request_400.value
+        json_data = request.get_json()
+
+        if not json_data:
+            return (
+                jsonify({'message': 'Not input data provided'}),
+                HttpStatus.bad_request_400.value,
+            )
+
+        if 'name' in json_data and json_data['name'] is not None:
+            notification_category.update()
+
         try:
-            if (
-                'name' in notification_category_dict
-                and notification_category_dict['name'] is not None
-            ):
-                notification_category.update()
-                return self.get(id)
-        except SQLAlchemyError as e:
+            category_data = category_schema.dump(notification_category)
+            notifications_data = notifications_schema.dump(
+                notification_category.notifications
+            )
+        except ValidationError as err:
+            return {'messages': err.messages}, 422
+
+        try:
+            notification_category.update()
+            return jsonify(
+                {'category': category_data, 'notifications': notifications_data}
+            )
+        except SQLAlchemyError as err:
             orm.session.rollback()
-            response = {'error': str(e)}
-            return response, HttpStatus.bad_request_400.value
+            return {'messages': str(err)}, HttpStatus.bad_request_400.value
 
     def delete(self, id):
         notification_category = NotificationCategory.query.get_or_404(id)
@@ -46,40 +62,48 @@ class NotificationCategoryResource(Resource):
             notification_category.delete(notification_category)
             response = make_response()
             return response, HttpStatus.no_content_204.value
-        except SQLAlchemyError as e:
+        except SQLAlchemyError as err:
             orm.session.rollback()
-            response = {'error': str(e)}
-            return response, HttpStatus.unathorized_401.value
+            return {'messages': str(err)}, HttpStatus.unathorized_401.value
 
 
 class NotificationCatergoryListResource(Resource):
     def get(self):
         notification_categories = NotificationCategory.query.all()
-        dump_results = notification_category_schema.dump(
-            notification_categories, many=True
-        )
-        return dump_results
+        categories_data = categories_schema.dump(notification_categories)
+        return jsonify({'categories': categories_data})
 
     def post(self):
-        notification_category_dict = request.get_json()
-        if not notification_category_dict:
-            response = {'message': 'No input data provided'}
-            return response, HttpStatus.bad_request_400.value
-        errors = notification_category_schema.validate(notification_category_dict)
-        if errors:
-            return errors, HttpStatus.bad_request_400.value
-        try:
-            notification_category = NotificationCategory(
-                notification_category_dict['name']
+        json_data = request.get_json()
+
+        if not json_data:
+            return (
+                jsonify({'message': 'No input data provided'}),
+                HttpStatus.bad_request_400.value,
             )
+
+        try:
+            category_data = category_schema.load(json_data)
+        except ValidationError as err:
+            return {'messages': err.messages}, 422
+
+        try:
+            notification_category = NotificationCategory(name=category_data['name'])
             notification_category.add(notification_category)
             query = NotificationCategory.query.get(notification_category.id)
-            dump_result = notification_category_schema.dump(query).data
-            return dump_result, HttpStatus.created_201.value
-        except SQLAlchemyError as e:
+            category_data = category_schema.dump(query)
+            notifications_data = notifications_schema.dump(
+                notification_category.notifications
+            )
+            return (
+                jsonify(
+                    {'category': category_data, 'notifications': notifications_data}
+                ),
+                HttpStatus.created_201.value,
+            )
+        except SQLAlchemyError as err:
             orm.session.rollback()
-            response = {'error': str(e)}
-            return response, HttpStatus.bad_request_400.value
+            return {'messages': str(err)}, HttpStatus.bad_request_400.value
 
 
 category.add_resource(NotificationCatergoryListResource, '/notification_categories')
