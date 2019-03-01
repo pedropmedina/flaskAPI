@@ -1,7 +1,6 @@
 from marshmallow import fields, validate
 
-from .base import db as orm, ma
-from ..routes.base import ResourceAddUpdateDelete
+from .base import db as orm, ma, ResourceAddUpdateDelete
 
 
 # Notification Category Model

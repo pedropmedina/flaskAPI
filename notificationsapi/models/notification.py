@@ -1,7 +1,6 @@
 from marshmallow import fields, pre_load, validate, ValidationError
 
-from .base import db as orm, ma
-from ..routes.base import ResourceAddUpdateDelete
+from .base import db as orm, ma, ResourceAddUpdateDelete
 
 
 # Notfication Model
