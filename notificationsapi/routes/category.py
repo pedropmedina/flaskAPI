@@ -37,7 +37,7 @@ class NotificationCategoryResource(Resource):
             )
 
         if 'name' in json_data and json_data['name'] is not None:
-            notification_category.update()
+            notification_category.name = json_data['name']
 
         try:
             category_data = category_schema.dump(notification_category)
@@ -59,7 +59,7 @@ class NotificationCategoryResource(Resource):
         try:
             notification_category.delete(notification_category)
             response = make_response()
-            return response, HttpStatus.no_content_204.value
+            return str(response), HttpStatus.no_content_204.value
         except SQLAlchemyError as err:
             orm.session.rollback()
             return {'messages': str(err)}, HttpStatus.unathorized_401.value

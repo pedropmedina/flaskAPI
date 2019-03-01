@@ -56,10 +56,10 @@ class NotificationResource(Resource):
         try:
             notification.delete(notification)
             response = make_response()
-            return response, HttpStatus.no_content_204.value
+            return str(response), HttpStatus.no_content_204.value
         except SQLAlchemyError as e:
             orm.session.rollback()
-            response = {'error': str(e)}
+            response = {'messages': str(e)}
             return response, HttpStatus.unathorized_401.value
 
 
