@@ -16,6 +16,8 @@ notifications_schema = NotificationSchema(many=True, exclude=['notification_cate
 bp = Blueprint('category', __name__)
 category = Api(bp)
 
+duplicate_category_message = 'A notification category of name "{}" already exists.'
+
 
 class NotificationCategoryResource(Resource):
     def get(self, id):
@@ -37,7 +39,18 @@ class NotificationCategoryResource(Resource):
             )
 
         if 'name' in json_data and json_data['name'] is not None:
-            notification_category.name = json_data['name']
+            notification_category_name = json_data['name']
+            if NotificationCategory.is_name_unique(
+                id=0, name=notification_category_name
+            ):
+                notification_category.name = notification_category_name
+            else:
+                response = {
+                    'message': duplicate_category_message.format(
+                        notification_category_name
+                    )
+                }
+                return response, HttpStatus.bad_request_400.value
 
         try:
             category_data = category_schema.dump(notification_category)
@@ -84,6 +97,16 @@ class NotificationCatergoryListResource(Resource):
             category_data = category_schema.load(json_data)
         except ValidationError as err:
             return {'messages': err.messages}, 422
+
+        # check for category uniqueness
+        notification_category_name = category_data['name']
+        if not NotificationCategory.is_name_unique(
+            id=0, name=notification_category_name
+        ):
+            response = {
+                'message': duplicate_category_message.format(notification_category_name)
+            }
+            return response, HttpStatus.bad_request_400.value
 
         try:
             notification_category = NotificationCategory(name=category_data['name'])

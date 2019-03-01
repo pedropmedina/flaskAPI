@@ -14,6 +14,8 @@ notifications_schema = NotificationSchema(many=True)
 bp = Blueprint('notification', __name__)
 notification = Api(bp)
 
+duplicate_notification_message = 'A notification with message "{}" already exists.'
+
 
 class NotificationResource(Resource):
     def get(self, id):
@@ -26,7 +28,18 @@ class NotificationResource(Resource):
         json_data = request.get_json()
 
         if 'message' in json_data and json_data['message'] is not None:
-            notification.message = json_data['message']
+            notification_message = json_data['message']
+            if not Notification.is_message_unique(id=0, message=notification_message):
+                return (
+                    {
+                        'message': duplicate_notification_message.format(
+                            notification_message
+                        )
+                    },
+                    HttpStatus.bad_request_400.value,
+                )
+            else:
+                notification.message = notification_message
 
         if 'ttl' in json_data and json_data['ttl'] is not None:
             notification.duration = json_data['ttl']
@@ -82,6 +95,17 @@ class NotificationListResource(Resource):
             data = notification_schema.load(json_data)
         except ValidationError as err:
             return {'messages': err.messages}, 422
+
+        notification_message = data['message']
+        if not Notification.is_message_unique(id=0, message=notification_message):
+            return (
+                {
+                    'message': duplicate_notification_message.format(
+                        notification_message
+                    )
+                },
+                HttpStatus.bad_request_400.value,
+            )
 
         try:
             notification_category_name = json_data['notification_category']['name']

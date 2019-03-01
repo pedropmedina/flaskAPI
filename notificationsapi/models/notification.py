@@ -25,6 +25,17 @@ class Notification(orm.Model, ResourceAddUpdateDelete):
     displayed_times = orm.Column(orm.Integer, nullable=False, server_default='0')
     displayed_once = orm.Column(orm.Boolean, nullable=False, server_default='False')
 
+    @classmethod
+    def is_message_unique(cls, id, message):
+        existing_notification = cls.query.filter_by(message=message).first()
+        if existing_notification is None:
+            return True
+        else:
+            if existing_notification.id == id:
+                return True
+            else:
+                return False
+
 
 # validation helpers
 def data_required(data):
