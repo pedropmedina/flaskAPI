@@ -7,6 +7,7 @@ from ..utils.http_status import HttpStatus
 from ..models.base import db as orm
 from ..models.notification import Notification, NotificationSchema
 from ..models.category import NotificationCategory
+from ..helpers import PaginationHelper
 
 notification_schema = NotificationSchema()
 notifications_schema = NotificationSchema(many=True)
@@ -78,9 +79,15 @@ class NotificationResource(Resource):
 
 class NotificationListResource(Resource):
     def get(self):
-        notifications = Notification.query.all()
-        notifications_result = notifications_schema.dump(notifications)
-        return {'notifications': notifications_result}
+        pagination_helper = PaginationHelper(
+            request,
+            query=Notification.query,
+            resource_for_url='notification.notificationlistresource',
+            key_name='results',
+            schema=notification_schema,
+        )
+        pagination_result = pagination_helper.paginate_query()
+        return pagination_result
 
     def post(sef):
         json_data = request.get_json()

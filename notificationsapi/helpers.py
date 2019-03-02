@@ -9,7 +9,7 @@ class PaginationHelper:
         self.resource_for_url = resource_for_url
         self.key_name = key_name
         self.schema = schema
-        self.page_size = current_app.config['PAGINATION_PAGE_SIZE']
+        self.page_size = int(current_app.config['PAGINATION_PAGE_SIZE'])
         self.page_argument_name = current_app.config['PAGINATION_PAGE_ARGUMENT_NAME']
 
     def paginate_query(self):
