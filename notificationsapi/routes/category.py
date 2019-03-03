@@ -7,6 +7,7 @@ from ..utils.http_status import HttpStatus
 from ..models.base import db as orm
 from ..models.category import NotificationCategory, NotificationCategorySchema
 from ..models.notification import NotificationSchema
+from .user import AuthenticationRequiredResource
 
 
 category_schema = NotificationCategorySchema(only=('id', 'name', 'url'))
@@ -19,7 +20,7 @@ category = Api(bp)
 duplicate_category_message = 'A notification category of name "{}" already exists.'
 
 
-class NotificationCategoryResource(Resource):
+class NotificationCategoryResource(AuthenticationRequiredResource):
     def get(self, id):
         notification_category = NotificationCategory.query.get_or_404(id)
         category_data = category_schema.dump(notification_category)
@@ -78,7 +79,7 @@ class NotificationCategoryResource(Resource):
             return {'messages': str(err)}, HttpStatus.unathorized_401.value
 
 
-class NotificationCatergoryListResource(Resource):
+class NotificationCatergoryListResource(AuthenticationRequiredResource):
     def get(self):
         notification_categories = NotificationCategory.query.all()
         categories_data = categories_schema.dump(notification_categories)

@@ -8,6 +8,7 @@ from ..models.base import db as orm
 from ..models.notification import Notification, NotificationSchema
 from ..models.category import NotificationCategory
 from ..helpers import PaginationHelper
+from .user import AuthenticationRequiredResource
 
 notification_schema = NotificationSchema()
 notifications_schema = NotificationSchema(many=True)
@@ -18,7 +19,7 @@ notification = Api(bp)
 duplicate_notification_message = 'A notification with message "{}" already exists.'
 
 
-class NotificationResource(Resource):
+class NotificationResource(AuthenticationRequiredResource):
     def get(self, id):
         notification = Notification.query.get_or_404(id)
         notification_result = notification_schema.dump(notification)
@@ -77,7 +78,7 @@ class NotificationResource(Resource):
             return response, HttpStatus.unathorized_401.value
 
 
-class NotificationListResource(Resource):
+class NotificationListResource(AuthenticationRequiredResource):
     def get(self):
         pagination_helper = PaginationHelper(
             request,

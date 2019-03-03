@@ -1,5 +1,5 @@
 import re
-from passlib import custom_app_context as password_context
+from passlib.apps import custom_app_context as password_context
 from marshmallow import fields, validate
 
 from .base import ma, db as orm, ResourceAddUpdateDelete
@@ -29,14 +29,15 @@ class User(orm.Model, ResourceAddUpdateDelete):
                     no more that 32 characters.',
                 False,
             )
-            if re.search(r'[A-Z]', password) is None:
-                return 'The password must include at least one uppercase letter', False
-            if re.search(r'[a-z]', password) is None:
-                return 'The password must include at lease one lowercase letter', False
-            if re.search(r"[ !#$%&'()*+,-./[\\\]^_`{|}~" + r'"]', password) is None:
-                return 'The password must include at least one symbol', False
-            self.password_hash = password_context.hash(password)
-            return '', True
+        if re.search(r'[A-Z]', password) is None:
+            return ('The password must include at least one uppercase letter', False)
+        if re.search(r'[a-z]', password) is None:
+            return ('The password must include at lease one lowercase letter', False)
+        if re.search(r"[ !#$%&'()*+,-./[\\\]^_`{|}~" + r'"]', password) is None:
+            return ('The password must include at least one symbol', False)
+
+        self.password_hash = password_context.hash(password)
+        return ('', True)
 
 
 class UserSchema(ma.Schema):
