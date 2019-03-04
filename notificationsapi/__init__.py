@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_migrate import Migrate
 
@@ -11,7 +12,7 @@ def create_app(config=None):
 
     # configure app
     if config is None:
-        app.config.from_envvar('APP_CONFIG', silent=True)
+        app.config.from_object(os.getenv('APP_SETTINGS'))
     else:
         app.config.from_mapping(config)
 
